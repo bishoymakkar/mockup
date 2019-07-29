@@ -1,0 +1,164 @@
+<?php
+Class Layout_model extends CI_Model
+{
+	
+	function getAll()
+	{
+		$sql = "SELECT * FROM layout";
+		$query = $this->db->query( $sql );
+		return $query->result_array();
+	}
+
+	function getLayouts()
+	  {	
+	    $sql = "SELECT  layout.id , configuration.id , layout.configuration_area_id, layout.img as layout_img , configuration.img as configuration_img,  layout.modified FROM layout INNER JOIN conf_areas ON conf_areas.id = layout.configuration_area_id JOIN configuration ON configuration.id = conf_areas.conf_id ORDER BY layout.id";
+
+	    $query=$this->db->query($sql);
+	      if ($query->num_rows>0)
+	        return $query->result();
+	      else 
+	        return false ;
+	  }
+	function getSingleLayout($id)
+	{	
+		$sql = "SELECT * FROM layout WHERE id = $id";
+
+		$query=$this->db->query($sql);
+		
+		if ($query->num_rows==1)
+			return $query->result();
+
+		return false ;
+	}
+
+	function get_layout_info( $id )
+	{
+		$sql = "SELECT * FROM layout WHERE id = $id";
+		$query = $this->db->query( $sql );
+		return $query->result_array();
+	}
+
+	function check_area_layout( $area_id, $layout_id )
+	{
+		$sql = "SELECT * FROM layout JOIN layout_area ON layout_area.layout_id = layout.id WHERE layout_area.layout_id = $layout_id AND layout_area.area_id = $area_id";
+		$query = $this->db->query( $sql );
+		return $query->num_rows();
+	}
+
+	function assign_layout_to_area( $layout_id, $area_id )
+	{
+		// $keys = array_keys( $layout_info );
+		$sql = "INSERT INTO layout_area ( layout_id, area_id ) VALUES ( $layout_id, $area_id )";
+		$this->db->query( $sql );
+		return TRUE;
+	}
+
+	function get_layout_conf( $id )
+	{
+		$sql = "SELECT configuration.id as conf_id, configuration.img as conf_img FROM conf_areas JOIN configuration ON conf_areas.conf_id = configuration.id JOIN layout ON layout.configuration_area_id = conf_areas.id WHERE layout.id = $id";
+		$query = $this->db->query( $sql );
+		return $query->result_array();
+	}
+
+	// function get_all_layouts()
+	// {
+	// 	$sql = "SELECT * FROM layout";
+	// 	$query = $this->db->query( $sql );
+	// 	return $query->result_array();
+	// }
+
+	function get_area_layouts( $id )
+	{
+		$sql = "SELECT * FROM layout_area JOIN layout ON layout.id = layout_area.layout_id WHERE area_id = $id";
+		$query = $this->db->query( $sql );
+		return $query->result_array();
+	}
+
+	function get_area_info( $id )
+	{
+		$sql = "SELECT * FROM conf_areas WHERE id = $id";
+		$query = $this->db->query( $sql );
+		return $query->result_array();
+	}
+
+	function getLayoutsOfConfiguration($id)
+	{	
+		$sql = "SELECT  layout.id , configuration.id , layout.img as layout_img , configuration.img as configuration_img, layout.modified  FROM layout  JOIN conf_areas ON conf_areas.id = layout.configuration_area_id JOIN configuration ON configuration.id = conf_areas.conf_id WHERE configuration.id = $id ORDER BY layout.id";
+
+		$query=$this->db->query($sql);
+		
+		if ($query->num_rows>0)
+	        return $query->result();
+
+		return false ;
+	}
+	
+	function createLayout( $img, $area_id, $title )
+	{
+		$date = date( 'Y-m-d H:i:s' );
+		$sql = "INSERT INTO layout (img, title, configuration_area_id, modified) VALUES ( '$img', '$title', '$area_id', '$date' )";
+		$this->db->query( $sql );
+		$layout_id = $this->db->insert_id();
+
+		// Create layout-area relation ..
+		$sql = "INSERT INTO layout_area ( layout_id, area_id ) VALUES ( $layout_id, $area_id )";
+		$this->db->query( $sql );
+		return TRUE;
+	}
+
+	public function updateLayout($id, $title, $img)
+	{
+		if ( $img == '' )
+		{
+			$sql = "UPDATE layout SET title = '$title' WHERE id = $id";
+		}
+		else
+		{
+			$sql = "UPDATE layout SET img = '$img', title = '$title' WHERE id = $id";
+		}
+		$result = $this->db->query($sql);
+
+		if($result)
+			return true;
+
+		return false;
+	}
+	public function deleteLayout($id)
+	{
+		// Deleting the Image
+		$image = $this->getSingleLayout($id);
+		$image = $image[0];
+		$image = $image->img;
+		unlink("./public/img/layouts/$image");
+
+		// Deleting The Record
+		$sql = "DELETE FROM layout WHERE id = $id";
+		$result = $this->db->query($sql);
+
+		// DELETE LAYOUT RELATIONS ..
+		$sql = "DELETE FROM layout_area WHERE layout_id = $id";
+		$this->db->query( $sql );
+
+		$sql = "DELETE FROM layout_object WHERE layout_id = $id";
+		$this->db->query( $sql );
+
+		if($result)
+			return true;
+
+		return false;
+	}
+	function get_config(){
+
+		$sql = "SELECT configuration_id FROM layout ";
+		$query = $this->db->query($sql);
+		return $query->result_array();
+	}
+	function count()
+   {
+      $sql = "SELECT count(id) FROM layout";
+      $query = $this->db->query($sql);
+      $temp = $query->row_array(); 
+      return $temp['count(id)'];
+   }
+
+}
